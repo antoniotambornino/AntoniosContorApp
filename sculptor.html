@@ -1,5 +1,3 @@
-Ask permission before copying the following please.
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +5,17 @@ Ask permission before copying the following please.
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Contor Studio</title>
 <link rel="manifest" href="manifest.json">
+<!-- ── Google Analytics 4 ── Replace G-XXXXXXXXXX with your Measurement ID
+     from https://analytics.google.com → Admin → Data Streams → your stream ── -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','G-XXXXXXXXXX');
+// Helper used by the app to fire custom events
+function _gaEvent(name,params){if(typeof gtag==='function')gtag('event',name,params);}
+</script>
 <style>
 :root{
   --bg:#090b12;--panel:#0f1320;--panel2:#161b2b;--panel3:#1c2236;
@@ -44,7 +53,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 }
 .hdr-badge.rec{color:var(--red);border-color:rgba(248,113,113,.35);}
 .hdr-fill{flex:1;}
-.byline{font-size:8px;color:var(--dim);white-space:nowrap;flex-shrink:0;}
+.byline{font-size:16px;color:var(--dim);white-space:nowrap;flex-shrink:0;}
 .hbtn{
   font-size:8px;font-weight:700;padding:4px 9px;border-radius:5px;
   border:1px solid var(--border2);background:var(--panel2);
@@ -132,7 +141,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);}
 #ftr{
   grid-area:ftr;display:flex;align-items:center;justify-content:center;
   background:var(--panel);border-top:1px solid var(--border);
-  font-size:8px;color:var(--dim);letter-spacing:.15px;user-select:none;
+  font-size:16px;color:var(--dim);letter-spacing:.15px;user-select:none;
 }
 
 /* ── TOOL STRIPS ── */
@@ -617,7 +626,7 @@ input[type=file]{display:none;}
   <button class="hbtn zelle" onclick="togglePanel('zelle-panel')" title="Support via Zelle">💛 Tip</button>
   <button class="hbtn" onclick="togglePanel('share-panel')">⬆ Share</button>
   <a class="mb-search-btn" href="contor_search.html" target="_blank" title="Search">🔍</a>
-  <button class="hbtn sub" onclick="openSub()">Subscribe $5.99/mo</button>
+  <button class="hbtn sub" onclick="openSub()">💛 Support $5.99/mo</button>
   <div id="print-wrap">
     <button id="print-btn" onclick="togglePrintPopup()" title="Print">🖨 Print</button>
     <div id="print-popup">
@@ -991,7 +1000,9 @@ input[type=file]{display:none;}
   <div class="ph"><span class="ph-title">Support Contor Studio</span><button class="ph-close" onclick="closePanel('zelle-panel')">✕</button></div>
   <div class="pb">
     <div style="font-size:28px;text-align:center;padding:5px 0 2px">💛</div>
-    <p style="font-size:9px;color:var(--dim);text-align:center;margin:0 0 3px">Enjoying Contor? Send any amount via Zelle:</p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=104x104&ecc=M&margin=1&data=antoniotambornino%40gmail.com" width="104" height="104" style="display:block;margin:4px auto 2px;border-radius:6px;image-rendering:pixelated;" alt="Scan for Zelle email">
+    <p style="font-size:7px;color:var(--dim);text-align:center;margin:0 0 6px">Scan to copy Zelle email on mobile</p>
+    <p id="zelle-panel-context" style="font-size:9px;color:var(--dim);text-align:center;margin:0 0 3px">Enjoying Contor? Send any amount via Zelle:</p>
     <div class="zelle-email">antoniotambornino@gmail.com</div>
     <div class="zelle-amounts">
       <button class="zelle-amt" onclick="_copyZelle('$1')">$1</button>
@@ -1020,7 +1031,7 @@ input[type=file]{display:none;}
     <ol style="font-size:8px;color:var(--dim);line-height:1.8;margin:7px 0 5px;padding-left:15px">
       <li>Open Zelle in your bank app</li>
       <li>Send <b id="zg-price" style="color:var(--accent)">$2</b> to the email above</li>
-      <li>DM confirmation to <b style="color:var(--accent)">@contor.studio</b></li>
+      <li>Email confirmation to <b style="color:var(--accent)">antoniotambornino@gmail.com</b></li>
       <li>Receive download link within 24 h</li>
     </ol>
     <button class="zelle-copy" onclick="_copyZelle();closePanel('zelle-gate')">📋 Copy Zelle Email</button>
@@ -1044,7 +1055,7 @@ input[type=file]{display:none;}
       <div class="pk"><span class="pk-ok">✓</span>3D shapes + Unreal Engine lighting</div>
       <div class="pk"><span class="pk-ok">✓</span>Cancel any time</div>
     </div>
-    <button class="sg-sub-btn" onclick="sgSubscribe()">Subscribe $5.99/mo →</button>
+    <button class="sg-sub-btn" onclick="sgSubscribe()">Support via Zelle $5.99/mo →</button>
     <div class="sg-skip" onclick="sgClose()">✕ Maybe later</div>
   </div>
 </div>
@@ -1335,7 +1346,7 @@ function _renderVectorStroke(ctx,pts,b,final){
   if(pts.length<2) return;
   ctx.save(); ctx.globalCompositeOperation='source-over';
   ctx.strokeStyle=S.color; ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.globalAlpha=b.op;
+  ctx.globalAlpha=S.opacity;
   if(b.flat>0){
     /* Calligraphy / felt-tip with width taper */
     for(let i=1;i<pts.length;i++){
@@ -1388,7 +1399,7 @@ function _stamp(ctx,x,y,b,pressure,tapFrac){
   const sx=b.scat>0?x+(Math.random()-.5)*r0*b.scat*3.5:x;
   const sy=b.scat>0?y+(Math.random()-.5)*r0*b.scat*3.5:y;
   const grd=ctx.createRadialGradient(sx,sy,0,sx,sy,rx);
-  const alpha=b.op*pressure;
+  const alpha=S.opacity*pressure;
   grd.addColorStop(0,    _hexAlpha(S.color,alpha));
   grd.addColorStop(b.hard,_hexAlpha(S.color,alpha));
   grd.addColorStop(1,    _hexAlpha(S.color,0));
@@ -2548,6 +2559,8 @@ function _trackShare(event){
   _shareCount++;localStorage.setItem('contor_shares',_shareCount);
   if(_shareCount%100===0)toast('🎉 '+_shareCount+' shares from this device!');
   _recordRevenue('share_traffic',0);
+  // Fire to Google Analytics 4
+  _gaEvent('contor_'+event,{share_total:_shareCount});
   try{navigator.sendBeacon('https://contor-analytics.io/track',JSON.stringify({event,ts:Date.now()}));}catch(e){}
 }
 function _exportPNG(){const a=document.createElement('a');a.href=compC.toDataURL('image/png');a.download='contor_artwork.png';a.click();toast('PNG exported');_trackShare('export_png');}
@@ -2559,7 +2572,13 @@ function _requireSub(featureName,action){
   document.getElementById('subgate').classList.add('show');
   document.getElementById('subgate')._pendingAction=action;
 }
-function sgSubscribe(){_recordRevenue('subscribe_stripe',5.99);if(_STRIPE&&!_STRIPE.includes('YOUR_PAYMENT'))window.open(_STRIPE,'_blank');else alert('Stripe not configured.\nReplace _STRIPE with your payment link.');}
+function sgSubscribe(){
+  _recordRevenue('subscribe_zelle_intent',5.99);
+  sgClose();
+  document.getElementById('zelle-panel-context').textContent='Send $5.99/mo via Zelle to support Contor:';
+  togglePanel('zelle-panel');
+  _gaEvent('subscribe_zelle_open',{amount:5.99});
+}
 function sgClose(){document.getElementById('subgate').classList.remove('show');}
 function openSub(){document.getElementById('sg-feat-txt').textContent='Unlock all premium features.';document.getElementById('subgate').classList.add('show');}
 function newSceneGated(){_requireSub('New Canvas',_newScene);}
@@ -2581,6 +2600,7 @@ function setTool(t){
   wrap.className='';wrap.classList.add('t-'+t);
   const NAMES={brush:'Brush',pencil:'Pencil',ink:'Ink Pen',eraser:'Eraser',chisel:'Chisel',fill:'Fill',eyedrop:'Eyedropper',blend:'Blend',select:'Select',move:'Move',text:'Text',transform:'Transform',bone:'Bone Rig',pin:'Pose',shape:'3D Shape'};
   const badge=document.getElementById('hdr-tool');if(badge)badge.textContent=NAMES[t]||t;
+  _gaEvent('tool_select',{tool_name:t});
   if(!['brush','pencil','ink','eraser'].includes(t))bsCursor.style.display='none';
   if(t!=='chisel')chiselCursor.style.display='none';
   if(t!=='select'&&t!=='transform'&&t!=='move')S.hasSel=false;
@@ -2747,5 +2767,4 @@ document.addEventListener('click',e=>{
 resizeCanvases();renderLayerList();_updateLayerBadge();_saveHistory();setTool('brush');
 
 </script>
-</body>
-</html>
+</body
