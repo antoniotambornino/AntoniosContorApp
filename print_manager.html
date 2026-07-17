@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Print Manager — Thermal Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#07090f;--panel:#111318;--panel2:#181c26;--border:#22273a;
+  --accent:#818cf8;--green:#34d399;--gold:#fbbf24;--red:#f87171;--orange:#fb923c;
+  --text:#dde1f5;--dim:#4a5170;--r:6px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden;}
+#app{display:grid;height:100vh;grid-template-rows:48px 1fr 32px;grid-template-columns:1fr 340px;}
+
+/* HEADER */
+#hdr{grid-column:1/-1;background:linear-gradient(90deg,#050812,#0d1230 50%,#050812);
+  border-bottom:2px solid var(--accent);
+  display:flex;align-items:center;padding:0 16px;gap:12px;}
+.brand{font-size:16px;font-weight:900;letter-spacing:2px;
+  background:linear-gradient(90deg,#818cf8,#34d399);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr-sep{width:1px;height:22px;background:var(--border);}
+#conn-status{font-size:11px;display:flex;align-items:center;gap:6px;}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--red);}
+.conn-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);}
+#estop-btn{margin-left:auto;background:#7f1d1d;color:#fca5a5;
+  border:none;border-radius:20px;padding:6px 18px;font-size:12px;font-weight:700;
+  cursor:pointer;transition:background .15s;}
+#estop-btn:hover{background:#ef4444;color:#fff;}
+#estop-btn.fired{background:#ef4444;animation:pulse 0.6s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+
+/* MAIN */
+#main{grid-column:1;grid-row:2;overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:14px;}
+#main::-webkit-scrollbar{width:5px;}
+#main::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* TEMP GAUGES */
+#gauges{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+.gauge-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:12px;display:flex;flex-direction:column;gap:6px;transition:border-color .3s;}
+.gauge-card.warn{border-color:var(--gold);}
+.gauge-card.crit{border-color:var(--orange);box-shadow:0 0 12px rgba(251,146,60,.2);}
+.gauge-card.estop{border-color:var(--red);box-shadow:0 0 16px rgba(248,113,113,.35);animation:pulse 0.5s infinite;}
+.g-label{font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;}
+.g-val{font-size:28px;font-weight:800;font-family:monospace;color:var(--text);}
+.g-unit{font-size:12px;color:var(--dim);}
+.g-bar-wrap{height:4px;background:var(--panel2);border-radius:2px;overflow:hidden;}
+.g-bar{height:100%;border-radius:2px;transition:width .5s,background .3s;}
+.g-status{font-size:10px;font-weight:700;color:var(--green);}
+
+/* CHART */
+#chart-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;}
+#chart-wrap h3{font-size:12px;font-weight:700;color:var(--dim);margin-bottom:10px;
+  text-transform:uppercase;letter-spacing:.7px;}
+#chart{width:100%;height:200px;}
+
+/* PRINT JOB */
+#job-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;}
+#job-card h3{font-size:12px;font-weight:700;color:var(--dim);margin-bottom:12px;
+  text-transform:uppercase;letter-spacing:.7px;}
+.job-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.job-label{font-size:11px;color:var(--dim);width:100px;flex-shrink:0;}
+.job-val{font-size:11px;color:var(--text);flex:1;}
+.job-sel{background:var(--panel2);color:var(--text);border:1px solid var(--border);
+  border-radius:4px;padding:4px 8px;font-size:11px;flex:1;}
+.prog-wrap{flex:1;height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));
+  border-radius:3px;transition:width 1s;}
+.btn{border:none;border-radius:var(--r);cursor:pointer;font-family:inherit;
+  font-size:11px;padding:6px 14px;}
+.btn-pri{background:var(--accent);color:#000;font-weight:700;}
+.btn-suc{background:var(--green);color:#000;font-weight:700;}
+.btn-gh{background:transparent;color:var(--text);border:1px solid var(--border);}
+.btn-dng{background:#5c1717;color:#fca5a5;}
+
+/* PRINT SETUP (right of job card) */
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+/* SIDEBAR */
+#sidebar{grid-column:2;grid-row:2;background:var(--panel);border-left:1px solid var(--border);
+  overflow-y:auto;display:flex;flex-direction:column;}
+#sidebar::-webkit-scrollbar{width:4px;}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);}
+.s-sect{padding:10px 14px 6px;font-size:9px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;color:var(--dim);
+  border-bottom:1px solid var(--border);}
+
+/* ALERTS LOG */
+#alert-log{flex:1;overflow-y:auto;padding:8px;}
+.alert-item{padding:6px 8px;border-radius:6px;font-size:11px;margin-bottom:4px;
+  border-left:3px solid;line-height:1.5;}
+.alert-ok{border-color:var(--green);background:rgba(52,211,153,.06);color:var(--green);}
+.alert-warn{border-color:var(--gold);background:rgba(251,191,36,.06);color:var(--gold);}
+.alert-crit{border-color:var(--orange);background:rgba(251,146,60,.08);color:var(--orange);}
+.alert-estop{border-color:var(--red);background:rgba(248,113,113,.1);color:var(--red);font-weight:700;}
+.alert-time{font-size:9px;color:var(--dim);display:block;margin-bottom:2px;}
+
+/* PRINT CHECKLIST */
+#checklist{padding:10px 14px;}
+.check-item{display:flex;align-items:center;gap:8px;padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;}
+.check-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* FILAMENT CALCULATOR */
+#filament-calc{padding:10px 14px;}
+.fc-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px;}
+.fc-row label{flex:1;color:var(--dim);}
+.fc-row input{width:70px;background:var(--panel2);color:var(--text);
+  border:1px solid var(--border);border-radius:3px;padding:3px 6px;font-size:11px;text-align:right;}
+.fc-result{padding:8px;background:var(--panel2);border-radius:6px;margin-top:6px;
+  font-size:12px;line-height:1.8;}
+
+/* STATUS BAR */
+#statusbar{grid-column:1/-1;grid-row:3;background:var(--panel2);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;gap:16px;font-size:10px;color:var(--dim);}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<div id="hdr">
+  <span class="brand">PRINT MANAGER</span>
+  <div class="hdr-sep"></div>
+  <div id="conn-status">
+    <div class="conn-dot" id="conn-dot"></div>
+    <span id="conn-label">Connecting to ws://localhost:8765…</span>
+  </div>
+  <div class="hdr-sep"></div>
+  <span id="board-label" style="font-size:11px;color:var(--dim)">No board detected</span>
+  <button id="estop-btn" onclick="sendEStop()">⬛ EMERGENCY STOP</button>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- TEMPERATURE GAUGES -->
+  <div id="gauges">
+    <div class="gauge-card" id="gc-hotend">
+      <div class="g-label">Hotend</div>
+      <div><span class="g-val" id="gv-hotend">---</span><span class="g-unit">°C</span></div>
+      <div class="g-bar-wrap"><div class="g-bar" id="gb-hotend" style="width:0%;background:var(--accent)"></div></div>
+      <div class="g-status" id="gs-hotend">—</div>
+    </div>
+    <div class="gauge-card" id="gc-bed">
+      <div class="g-label">Heated Bed</div>
+      <div><span class="g-val" id="gv-bed">---</span><span class="g-unit">°C</span></div>
+      <div class="g-bar-wrap"><div class="g-bar" id="gb-bed" style="width:0%;background:var(--gold)"></div></div>
+      <div class="g-status" id="gs-bed">—</div>
+    </div>
+    <div class="gauge-card" id="gc-stepX">
+      <div class="g-label">Stepper X</div>
+      <div><span class="g-val" id="gv-stepX">---</span><span class="g-unit">°C</span></div>
+      <div class="g-bar-wrap"><div class="g-bar" id="gb-stepX" style="width:0%;background:var(--accent)"></div></div>
+      <div class="g-status" id="gs-stepX">—</div>
+    </div>
+    <div class="gauge-card" id="gc-stepY">
+      <div class="g-label">Stepper Y</div>
+      <div><span class="g-val" id="gv-stepY">---</span><span class="g-unit">°C</span></div>
+      <div class="g-bar-wrap"><div class="g-bar" id="gb-stepY" style="width:0%;background:var(--accent)"></div></div>
+      <div class="g-status" id="gs-stepY">—</div>
+    </div>
+    <div class="gauge-card" id="gc-ambient">
+      <div class="g-label">Ambient</div>
+      <div><span class="g-val" id="gv-ambient">---</span><span class="g-unit">°C</span></div>
+      <div class="g-bar-wrap"><div class="g-bar" id="gb-ambient" style="width:0%;background:var(--green)"></div></div>
+      <div class="g-status" id="gs-ambient">—</div>
+    </div>
+    <div class="gauge-card" id="gc-psu">
+      <div class="g-label">PSU Voltage</div>
+      <div><span class="g-val" id="gv-psu">---</span><span class="g-unit">V</span></div>
+      <div class="g-bar-wrap"><div class="g-bar" id="gb-psu" style="width:0%;background:var(--green)"></div></div>
+      <div class="g-status" id="gs-psu">—</div>
+    </div>
+    <div class="gauge-card" id="gc-fan">
+      <div class="g-label">Fan Speed</div>
+      <div><span class="g-val" id="gv-fan">---</span><span class="g-unit">RPM</span></div>
+      <div class="g-bar-wrap"><div class="g-bar" id="gb-fan" style="width:0%;background:var(--accent)"></div></div>
+      <div class="g-status" id="gs-fan">—</div>
+    </div>
+  </div>
+
+  <!-- LIVE CHART -->
+  <div id="chart-wrap">
+    <h3>Live Temperature Chart</h3>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <!-- PRINT JOB CARD -->
+  <div id="job-card">
+    <h3>Print Job</h3>
+    <div class="job-row">
+      <span class="job-label">Job name</span>
+      <input type="text" id="job-name" value="sculpture_v1.stl" class="job-sel">
+    </div>
+    <div class="job-row">
+      <span class="job-label">Material</span>
+      <select class="job-sel" id="job-mat" onchange="updateJobEstimate()">
+        <option value="PLA">PLA — 210°C / 60°C</option>
+        <option value="PETG">PETG — 235°C / 80°C</option>
+        <option value="ABS">ABS — 250°C / 110°C</option>
+        <option value="TPU">TPU — 225°C / 45°C</option>
+        <option value="ASA">ASA — 255°C / 100°C</option>
+      </select>
+    </div>
+    <div class="job-row">
+      <span class="job-label">Layer height</span>
+      <select class="job-sel" id="job-layer" onchange="updateJobEstimate()">
+        <option value="0.1">0.10 mm (Fine)</option>
+        <option value="0.2" selected>0.20 mm (Standard)</option>
+        <option value="0.3">0.30 mm (Draft)</option>
+      </select>
+    </div>
+    <div class="job-row">
+      <span class="job-label">Print height</span>
+      <input type="number" class="job-sel" id="job-h" value="50" step="1" min="1" oninput="updateJobEstimate()"> <span style="font-size:11px;color:var(--dim)">mm</span>
+    </div>
+    <div class="job-row">
+      <span class="job-label">Est. print time</span>
+      <span class="job-val" id="job-eta">—</span>
+    </div>
+    <div class="job-row">
+      <span class="job-label">Progress</span>
+      <div class="prog-wrap"><div class="prog-bar" id="job-prog" style="width:0%"></div></div>
+      <span id="job-pct" style="font-size:11px;color:var(--dim);margin-left:8px;">0%</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-suc" onclick="startJob()">▶ Start Job</button>
+      <button class="btn btn-gh" onclick="pauseJob()">⏸ Pause</button>
+      <button class="btn btn-dng" onclick="cancelJob()">✕ Cancel</button>
+      <button class="btn btn-pri" onclick="window.open('sculptor.html','_blank')">🖱 Open Sculptor</button>
+    </div>
+  </div>
+
+</div><!-- #main -->
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="s-sect">Live Alerts</div>
+  <div id="alert-log"><div class="alert-item alert-ok"><span class="alert-time">System</span>Print Manager ready</div></div>
+
+  <div class="s-sect" style="margin-top:8px;">Print Checklist</div>
+  <div id="checklist">
+    <div class="check-item"><div class="check-dot" id="chk-hotend" style="background:var(--dim)"></div><span>Hotend at target temp</span></div>
+    <div class="check-item"><div class="check-dot" id="chk-bed" style="background:var(--dim)"></div><span>Bed at target temp</span></div>
+    <div class="check-item"><div class="check-dot" id="chk-fan" style="background:var(--dim)"></div><span>Cooling fan running</span></div>
+    <div class="check-item"><div class="check-dot" id="chk-psu" style="background:var(--dim)"></div><span>PSU voltage stable</span></div>
+    <div class="check-item"><div class="check-dot" id="chk-noestop" style="background:var(--dim)"></div><span>No emergency stop active</span></div>
+    <div class="check-item"><div class="check-dot" id="chk-stepper" style="background:var(--dim)"></div><span>Stepper temps normal</span></div>
+  </div>
+
+  <div class="s-sect" style="margin-top:8px;">Filament Calculator</div>
+  <div id="filament-calc">
+    <div class="fc-row"><label>Object W (mm)</label><input type="number" id="fc-w" value="50" oninput="calcFilament()"></div>
+    <div class="fc-row"><label>Object H (mm)</label><input type="number" id="fc-h" value="50" oninput="calcFilament()"></div>
+    <div class="fc-row"><label>Object D (mm)</label><input type="number" id="fc-d" value="50" oninput="calcFilament()"></div>
+    <div class="fc-row"><label>Infill %</label><input type="number" id="fc-infill" value="20" oninput="calcFilament()"></div>
+    <div class="fc-row"><label>Density (g/cm³)</label>
+      <select id="fc-dens" onchange="calcFilament()" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:3px;font-size:10px;">
+        <option value="1.24">PLA 1.24</option>
+        <option value="1.27">PETG 1.27</option>
+        <option value="1.10">ABS 1.10</option>
+        <option value="1.20">TPU 1.20</option>
+      </select>
+    </div>
+    <div class="fc-result" id="fc-result">Enter dimensions above</div>
+  </div>
+
+  <div class="s-sect" style="margin-top:8px;">Connection</div>
+  <div style="padding:10px 14px;font-size:11px;color:var(--dim);">
+    <p>Thermal data from <b>printer_monitor.py</b></p>
+    <p style="margin-top:6px;">WebSocket: <span id="ws-url" style="color:var(--accent)">ws://localhost:8765</span></p>
+    <input type="text" id="ws-input" value="ws://localhost:8765"
+      style="width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:11px;margin-top:6px;">
+    <button class="btn btn-pri" style="margin-top:6px;width:100%;" onclick="reconnectWS()">Reconnect</button>
+    <p style="margin-top:8px;color:var(--dim);">No printer? <button class="btn btn-gh" style="padding:3px 8px;font-size:10px" onclick="startDemo()">Run Demo</button></p>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <span id="sb-last">Last update: —</span>
+  <span id="sb-board">Board: —</span>
+  <span style="margin-left:auto" id="sb-time"></span>
+</div>
+
+</div><!-- #app -->
+
+<script>
+'use strict';
+
+// ── CONSTANTS ────────────────────────────────────────────────────────
+const ZONE_MAX = {hotend:300, bed:135, stepX:90, stepY:90, ambient:70};
+const ZONE_COLOR = {ok:'#34d399', warn:'#fbbf24', crit:'#fb923c', estop:'#f87171'};
+const LEVEL_NAME  = {0:'OK', 1:'WARN', 2:'CRITICAL', 3:'E-STOP'};
+const LEVEL_CLASS = {0:'', 1:'warn', 2:'crit', 3:'estop'};
+const LEVEL_COLOR = {0:'#34d399', 1:'#fbbf24', 2:'#fb923c', 3:'#f87171'};
+
+// ── STATE ────────────────────────────────────────────────────────────
+let ws = null;
+let _latest = {};
+let _history = {hotend:[], bed:[], stepX:[], stepY:[], ambient:[], ts:[]};
+const HIST_MAX = 120;
+let _jobRunning = false;
+let _jobStart   = null;
+let _jobTotal   = 3600;
+let _jobTimer   = null;
+let _demoTimer  = null;
+
+// ── WEBSOCKET ────────────────────────────────────────────────────────
+function reconnectWS() {
+  if (ws) { try{ ws.close(); }catch(e){} }
+  const url = document.getElementById('ws-input').value.trim() || 'ws://localhost:8765';
+  document.getElementById('ws-url').textContent = url;
+  setConnStatus(false, 'Connecting…');
+  try {
+    ws = new WebSocket(url);
+    ws.onopen    = () => setConnStatus(true, 'Live · ' + url);
+    ws.onclose   = () => { setConnStatus(false,'Disconnected'); setTimeout(reconnectWS, 5000); };
+    ws.onerror   = () => setConnStatus(false,'Connection error');
+    ws.onmessage = e => { try{ handleData(JSON.parse(e.data)); }catch(ex){} };
+  } catch(e) {
+    setConnStatus(false,'Invalid URL');
+  }
+}
+
+function setConnStatus(live, msg) {
+  document.getElementById('conn-dot').className   = 'conn-dot' + (live?' live':'');
+  document.getElementById('conn-label').textContent = msg;
+}
+
+function sendEStop() {
+  if (!confirm('Send EMERGENCY STOP to printer?')) return;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({cmd:'FORCE_ESTOP'}));
+  }
+  document.getElementById('estop-btn').classList.add('fired');
+  addAlert('estop', '⛔ EMERGENCY STOP sent by operator');
+}
+
+// ── DATA HANDLER ─────────────────────────────────────────────────────
+function handleData(data) {
+  _latest = data;
+  const ts = Date.now() / 1000;
+  ['hotend','bed','stepX','stepY','ambient'].forEach(k => {
+    if (data[k] !== undefined) {
+      _history[k].push(data[k]);
+      if (_history[k].length > HIST_MAX) _history[k].shift();
+    }
+  });
+  _history.ts.push(ts);
+  if (_history.ts.length > HIST_MAX) _history.ts.shift();
+
+  updateGauges(data);
+  updateChecklist(data);
+  updateChart();
+
+  if (data.board) {
+    document.getElementById('board-label').textContent = data.board;
+    document.getElementById('sb-board').textContent = 'Board: ' + data.board;
+  }
+  document.getElementById('sb-last').textContent = 'Last update: ' + new Date().toLocaleTimeString();
+
+  if (data.estop) {
+    document.getElementById('estop-btn').classList.add('fired');
+    addAlert('estop', '⛔ EMERGENCY STOP — printer halted');
+  }
+}
+
+function updateGauges(data) {
+  const zones = {
+    hotend:  {val:data.hotend,  level:data.lHot||0, max:300},
+    bed:     {val:data.bed,     level:data.lBed||0, max:135},
+    stepX:   {val:data.stepX,   level:data.lSX||0,  max:90},
+    stepY:   {val:data.stepY,   level:data.lSY||0,  max:90},
+    ambient: {val:data.ambient, level:data.lAmb||0, max:70},
+    psu:     {val:data.psu,     level:data.lPSU||0, max:15, unit:'V', pct: data.psu ? Math.round((data.psu/15)*100) : 0},
+    fan:     {val:data.fanRPM,  level:data.fanRPM > 300 ? 0 : 1, max:6000, unit:'RPM'},
+  };
+  Object.entries(zones).forEach(([key,z]) => {
+    const ve = document.getElementById('gv-'+key);
+    const be = document.getElementById('gb-'+key);
+    const se = document.getElementById('gs-'+key);
+    const ce = document.getElementById('gc-'+key);
+    if (!ve) return;
+    if (z.val === undefined || z.val === null) return;
+    const disp = key==='psu' ? z.val.toFixed(2) : key==='fan' ? Math.round(z.val) : z.val.toFixed(1);
+    ve.textContent = disp;
+    const pct = key==='psu' ? z.pct||Math.round((z.val/15)*100) : key==='fan' ? Math.round((z.val/6000)*100) : Math.round((z.val/z.max)*100);
+    be.style.width = Math.min(100,pct) + '%';
+    be.style.background = LEVEL_COLOR[z.level];
+    se.textContent = LEVEL_NAME[z.level];
+    se.style.color  = LEVEL_COLOR[z.level];
+    ce.className = 'gauge-card ' + (LEVEL_CLASS[z.level]||'');
+    if (z.level >= 1) {
+      addAlert(['','warn','crit','estop'][z.level],
+        `${key.toUpperCase()} ${LEVEL_NAME[z.level]}: ${disp}${z.unit||'°C'}`);
+    }
+  });
+}
+
+// ── ALERTS ───────────────────────────────────────────────────────────
+const _alertCooldowns = {};
+function addAlert(level, msg) {
+  const key = level + '|' + msg;
+  const now = Date.now();
+  if (_alertCooldowns[key] && now - _alertCooldowns[key] < 15000) return;
+  _alertCooldowns[key] = now;
+  const log  = document.getElementById('alert-log');
+  const item = document.createElement('div');
+  item.className = 'alert-item alert-' + level;
+  item.innerHTML = `<span class="alert-time">${new Date().toLocaleTimeString()}</span>${msg}`;
+  log.insertBefore(item, log.firstChild);
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+// ── CHART ─────────────────────────────────────────────────────────────
+const CHART_COLORS = {
+  hotend:'#f87171', bed:'#fbbf24', stepX:'#60a5fa',
+  stepY:'#818cf8', ambient:'#34d399'
+};
+let _chartInit = false;
+let _chartCtx  = null;
+let _chartData = {};
+
+function updateChart() {
+  const canvas = document.getElementById('chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 500;
+  const H = 200;
+  canvas.width  = W;
+  canvas.height = H;
+
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0,0,W,H);
+
+  // Grid lines
+  ctx.strokeStyle = '#1a1f2e';
+  ctx.lineWidth = 1;
+  for (let y=0; y<H; y+=H/4) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+
+  const n = _history.ts.length;
+  if (n < 2) return;
+
+  const tMin = _history.ts[0];
+  const tMax = _history.ts[n-1];
+  const dt   = tMax - tMin || 1;
+
+  const zones = ['hotend','bed','stepX','stepY','ambient'];
+  const allVals = zones.flatMap(k => _history[k]);
+  const vMin = Math.max(0, Math.min(...allVals) - 10);
+  const vMax = Math.max(...allVals) + 20;
+  const vRange = vMax - vMin || 1;
+
+  zones.forEach(key => {
+    const vals = _history[key];
+    if (vals.length < 2) return;
+    ctx.strokeStyle = CHART_COLORS[key];
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    vals.forEach((v, i) => {
+      const x = (((_history.ts[i]||tMin) - tMin) / dt) * W;
+      const y = H - ((v - vMin) / vRange) * H;
+      i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  });
+
+  // Legend
+  let lx = 10;
+  zones.forEach(key => {
+    const v = _history[key][_history[key].length-1];
+    if (v === undefined) return;
+    ctx.fillStyle = CHART_COLORS[key];
+    ctx.fillRect(lx, 6, 12, 3);
+    ctx.fillStyle = '#dde1f5';
+    ctx.font = '9px monospace';
+    ctx.fillText(`${key} ${v.toFixed(0)}°`, lx+14, 14);
+    lx += 85;
+  });
+}
+
+// ── CHECKLIST ─────────────────────────────────────────────────────────
+function updateChecklist(data) {
+  const mat = document.getElementById('job-mat').value;
+  const targets = {
+    PLA:{hotend:210,bed:60}, PETG:{hotend:235,bed:80},
+    ABS:{hotend:250,bed:110}, TPU:{hotend:225,bed:45}, ASA:{hotend:255,bed:100}
+  };
+  const t = targets[mat] || targets.PLA;
+  const hotOk = data.hotend >= t.hotend - 5 && data.hotend <= t.hotend + 5;
+  const bedOk = data.bed    >= t.bed - 5    && data.bed    <= t.bed + 5;
+  const fanOk = data.fanRPM > 300;
+  const psuOk = data.psu > 11.5 && data.psu < 13;
+  const noEstop = !data.estop;
+  const stepOk = (data.lSX||0) === 0 && (data.lSY||0) === 0;
+  setCheck('chk-hotend', hotOk);
+  setCheck('chk-bed',    bedOk);
+  setCheck('chk-fan',    fanOk);
+  setCheck('chk-psu',    psuOk);
+  setCheck('chk-noestop',noEstop);
+  setCheck('chk-stepper',stepOk);
+}
+
+function setCheck(id, ok) {
+  const el = document.getElementById(id);
+  if (el) el.style.background = ok ? 'var(--green)' : 'var(--red)';
+}
+
+// ── JOB CONTROLS ─────────────────────────────────────────────────────
+function updateJobEstimate() {
+  const h     = parseFloat(document.getElementById('job-h').value) || 50;
+  const layer = parseFloat(document.getElementById('job-layer')?.value || document.getElementById('job-layer-sel')?.value || 0.2);
+  const layers = Math.ceil(h / layer);
+  const estMin = Math.round(layers * 0.8);
+  document.getElementById('job-eta').textContent =
+    estMin < 60 ? estMin + ' min' : Math.floor(estMin/60) + 'h ' + (estMin%60) + 'm';
+  _jobTotal = estMin * 60;
+}
+
+function startJob() {
+  if (_jobRunning) return;
+  _jobRunning = true;
+  _jobStart   = Date.now();
+  addAlert('ok', '▶ Print job started: ' + (document.getElementById('job-name').value||'job'));
+  _jobTimer = setInterval(() => {
+    const elapsed = (Date.now() - _jobStart) / 1000;
+    const pct = Math.min(100, Math.round((elapsed / _jobTotal) * 100));
+    document.getElementById('job-prog').style.width = pct + '%';
+    document.getElementById('job-pct').textContent = pct + '%';
+    if (pct >= 100) { clearInterval(_jobTimer); _jobRunning=false; addAlert('ok','✓ Print job complete!'); }
+  }, 1000);
+}
+
+function pauseJob() {
+  if (_jobTimer) { clearInterval(_jobTimer); _jobRunning=false; addAlert('warn','⏸ Job paused'); }
+}
+
+function cancelJob() {
+  clearInterval(_jobTimer); _jobRunning=false;
+  document.getElementById('job-prog').style.width='0%';
+  document.getElementById('job-pct').textContent='0%';
+  addAlert('warn','✕ Job cancelled');
+}
+
+// ── FILAMENT CALCULATOR ───────────────────────────────────────────────
+function calcFilament() {
+  const w = parseFloat(document.getElementById('fc-w').value)||50;
+  const h = parseFloat(document.getElementById('fc-h').value)||50;
+  const d = parseFloat(document.getElementById('fc-d').value)||50;
+  const infill = parseFloat(document.getElementById('fc-infill').value)||20;
+  const dens   = parseFloat(document.getElementById('fc-dens').value)||1.24;
+  const vol  = (w*h*d * (infill/100) * 0.001); // cm³
+  const mass = vol * dens;
+  const len  = (mass / (Math.PI * (0.175)**2 * dens * 100)).toFixed(2); // 1.75mm filament
+  const cost = (mass * 0.002).toFixed(2); // ~$20/kg
+  document.getElementById('fc-result').innerHTML =
+    `Volume: <b style="color:var(--text)">${vol.toFixed(1)} cm³</b><br>` +
+    `Mass: <b style="color:var(--text)">${mass.toFixed(1)} g</b><br>` +
+    `Filament: <b style="color:var(--text)">${(mass/dens/3.14159/0.0175/0.0175/100*10).toFixed(1)} cm</b><br>` +
+    `Est. cost: <b style="color:var(--gold)">$${cost}</b>`;
+}
+
+// ── DEMO MODE ─────────────────────────────────────────────────────────
+function startDemo() {
+  setConnStatus(true, 'DEMO MODE — simulated printer data');
+  let t = 0;
+  _demoTimer = setInterval(() => {
+    t += 0.5;
+    const hotend  = 210 * (1 - Math.exp(-t/60)) + (Math.random()-0.5);
+    const bed     = 60  * (1 - Math.exp(-t/90)) + (Math.random()-0.3)*0.5;
+    const stepX   = 25 + Math.min(t * 0.3, 35) + (Math.random()-0.5)*0.3;
+    const stepY   = 25 + Math.min(t * 0.28,33) + (Math.random()-0.5)*0.3;
+    const ambient = 22 + Math.min(t * 0.05, 8)  + (Math.random()-0.5)*0.2;
+    const data = {
+      hotend, bed, stepX, stepY, ambient,
+      psu:12 + (Math.random()-0.5)*0.05,
+      fanRPM: t > 5 ? 4500 : 0,
+      lHot:0, lBed:0, lSX:0, lSY:0, lAmb:0, lPSU:0, estop:0,
+      board:'DEMO (Arduino Mega / RAMPS 1.4)',
+    };
+    handleData(data);
+  }, 500);
+  addAlert('ok', '▶ Demo mode started — simulating printer data');
+}
+
+// ── CLOCK ─────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('sb-time').textContent = new Date().toLocaleTimeString();
+}, 1000);
+
+// ── INIT ─────────────────────────────────────────────────────────────
+updateJobEstimate();
+calcFilament();
+reconnectWS();
+</script>
+</body>
+</html>
