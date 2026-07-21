@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Contor Search — Tools, Brushes &amp; Community</title>
+<title>Fu Search — Tools, Brushes &amp; Community</title>
 <style>
 :root{
   --accent:#818cf8;--green:#34d399;--erase:#f87171;--gold:#facc15;
@@ -186,7 +186,7 @@ body{
 
 <!-- ── HEADER ── -->
 <div class="hdr">
-  <span class="brand">Contor</span>
+  <span class="brand">Fu</span>
   <span class="hdr-badge">SEARCH</span>
   <div class="hdr-search">
     <input type="text" id="main-input"
@@ -195,15 +195,15 @@ body{
       onkeydown="if(event.key==='Enter')runSearch()">
     <button class="hdr-btn" onclick="runSearch()">🔍 Search</button>
   </div>
-  <a class="back-btn" href="sculptor.html">← Contor</a>
-  <span style="font-size:9px;color:var(--dim);white-space:nowrap;margin-left:auto;">Antonio Modest Tambornino&nbsp;·&nbsp;6/26/2026</span>
+  <a class="back-btn" href="sculptor.html">← Fu</a>
+  <span style="font-size:14px;color:var(--dim);white-space:nowrap;margin-left:auto;">Antonio Modest Tambornino&nbsp;·&nbsp;6/26/2026</span>
 </div>
 
 <div class="page">
 
   <!-- ── SIDEBAR ── -->
   <div class="sidebar">
-    <div class="sb-hdr">In Contor</div>
+    <div class="sb-hdr">In Fu</div>
     <button class="sb-btn active" id="sb-all"     onclick="setFilter('all')">     <span class="sb-ico">🔍</span> All Results</button>
     <button class="sb-btn" id="sb-tools"   onclick="setFilter('tools')">  <span class="sb-ico">🛠</span> Sculpt Tools</button>
     <button class="sb-btn" id="sb-brushes" onclick="setFilter('brushes')"><span class="sb-ico">🖌</span> Brushes</button>
@@ -220,7 +220,7 @@ body{
     <div class="sb-sep"></div>
     <div class="sb-hdr">Open In App</div>
     <button class="sb-btn" onclick="window.open('sculptor.html','_blank')">
-      <span class="sb-ico">✦</span> Open Contor
+      <span class="sb-ico">✦</span> Open Fu
     </button>
   </div>
 
@@ -230,11 +230,11 @@ body{
     <div class="open-banner">
       <span style="font-size:24px;">✦</span>
       <div class="ob-text">
-        <b>Find anything in Contor</b> — search built-in and custom sculpting tools,
-        brushes, and the global community of Contor artists.
+        <b>Find anything in Fu</b> — search built-in and custom sculpting tools,
+        brushes, and the global community of Fu artists.
         Results open directly in the app.
       </div>
-      <button class="ob-btn" onclick="window.open('sculptor.html','_blank')">Open Contor →</button>
+      <button class="ob-btn" onclick="window.open('sculptor.html','_blank')">Open Fu →</button>
     </div>
 
     <div id="results-container">
@@ -254,7 +254,7 @@ body{
 
 /* ── All built-in sculpting tools ── */
 const TOOLS = [
-  /* ── CLASSIC (Original Contor) ── */
+  /* ── CLASSIC (Original Fu) ── */
   {ico:'✏', name:'Draw',          desc:'Push geometry outward along surface normal. The fundamental sculpt brush.',              badge:'builtin',   suite:'Classic',   action:'setTool("draw")'},
   {ico:'≋', name:'Smooth',        desc:'Averages vertex positions to eliminate rough areas and even out the surface.',            badge:'builtin',   suite:'Classic',   action:'setTool("smooth")'},
   {ico:'◉', name:'Inflate',       desc:'Moves vertices outward (or inward with Ctrl) uniformly in all directions.',              badge:'builtin',   suite:'Classic',   action:'setTool("inflate")'},
@@ -352,7 +352,7 @@ function render(){
         <span class="cat-count">${matches.length}</span></div>
         <div class="tool-grid">`;
       matches.forEach(t => {
-        html += `<div class="tool-card" onclick="openInApp('${t.action}')" title="Open in Contor: ${t.name}">
+        html += `<div class="tool-card" onclick="openInApp('${t.action}')" title="Open in Fu: ${t.name}">
           <div class="tc-ico">${t.ico}</div>
           <div class="tc-body">
             <div class="tc-name">${t.name}</div>
@@ -400,8 +400,8 @@ function render(){
         <button class="plt-btn" onclick="searchPlatform('tiktok')">🎵 TikTok</button>
       </div>
       <p style="font-size:10px;color:var(--dim);margin-top:6px;line-height:1.7;">
-        Search for <b style="color:var(--gold)">#Contor</b> on any platform to find artists and tutorials.
-        Share your work with <b style="color:var(--gold)">#Contor</b> to be discovered.
+        Search for <b style="color:var(--gold)">#Fu</b> on any platform to find artists and tutorials.
+        Share your work with <b style="color:var(--gold)">#Fu</b> to be discovered.
       </p>`;
   }
 
@@ -416,7 +416,7 @@ function render(){
   el.innerHTML = html;
 }
 
-/* ── Open result directly in Contor app ── */
+/* ── Open result directly in Fu app ── */
 function openInApp(action){
   /* Open sculptor.html in a new tab and pass the action via URL hash.
      sculptor.html checks location.hash on load and dispatches the action. */
@@ -426,12 +426,12 @@ function openInApp(action){
 
 /* ── Community platform search ── */
 function searchPlatform(platform){
-  const q = _query || 'Contor';
-  const enc = encodeURIComponent('#Contor ' + q);
+  const q = _query || 'Fu';
+  const enc = encodeURIComponent('#Fu ' + q);
   const urls = {
-    x:         'https://x.com/search?q=' + encodeURIComponent('#Contor ' + q) + '&src=typed_query',
+    x:         'https://x.com/search?q=' + encodeURIComponent('#Fu ' + q) + '&src=typed_query',
     reddit:    'https://www.reddit.com/search/?q=' + enc,
-    instagram: 'https://www.instagram.com/explore/tags/Contor/',
+    instagram: 'https://www.instagram.com/explore/tags/Fu/',
     youtube:   'https://www.youtube.com/results?search_query=' + enc,
     pinterest: 'https://www.pinterest.com/search/pins/?q=' + enc,
     tiktok:    'https://www.tiktok.com/search?q=' + enc,
@@ -461,10 +461,10 @@ function _trackSearch(q, platform){
 </script>
 <div style="
   background:var(--panel);border-top:1px solid var(--border);
-  padding:9px 20px;text-align:center;
-  font-size:9px;color:var(--dim);letter-spacing:.2px;
+  padding:11px 20px;text-align:center;
+  font-size:14px;color:var(--dim);letter-spacing:.2px;
 ">
-  Antonio Modest Tambornino&nbsp;&nbsp;·&nbsp;&nbsp;6/26/2026&nbsp;&nbsp;·&nbsp;&nbsp;Contor Studio&nbsp;&nbsp;·&nbsp;&nbsp;© 2026 All rights reserved
+  Antonio Modest Tambornino&nbsp;&nbsp;·&nbsp;&nbsp;6/26/2026&nbsp;&nbsp;·&nbsp;&nbsp;Fu Studio&nbsp;&nbsp;·&nbsp;&nbsp;© 2026 All rights reserved
 </div>
 </body>
 </html>
